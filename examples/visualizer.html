@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+	<title>Melody Visualizer</title>
+
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+	<link rel="icon" type="image/png" sizes="174x174" href="./style/favicon.png">
+
+	<script src="../build/Tone.js"></script>
+	<script src="./scripts/jquery.min.js"></script>
+	<script src="./scripts/draggabilly.js"></script>
+	<script src="https://tonejs.github.io/Logo/build/Logo.js"></script>
+	<script src="./scripts/StartAudioContext.js"></script>
+	<script src="./scripts/Interface.js"></script>
+	<script src="./scripts/nexusUI.js"></script>
+	<script type="text/javascript" src="https://tonejs.github.io/MidiConvert/build/MidiConvert.js"></script>
+
+	<link rel="stylesheet" type="text/css" href="./style/examples.css">
+
+	<script>
+		// jshint ignore: start
+	</script>
+
+</head>
+<body>	
+	<style type="text/css">
+		canvas#matrix1.nx {
+			/*margin-top: 3px;*/
+			height:600px;
+			width:2000px;
+		}
+		div #labels {
+			width:3%; 
+			float:left; 
+			background-color: black;
+		}
+		.generate {
+			background-color: black;
+			color: white;
+		}
+		tr {
+			color: white;
+		}
+	</style>
+	<div id="Content">
+		<div id="Title">Melody Visualizer</div>
+		<div id="labels" class="code"><table id = "noteLabel"></table></div>
+		<div id="mat" style="width:97%; float:right;"><canvas nx="matrix" ></canvas></div>
+		<br><br>
+		<div > 
+			<label>Input notes: <input type = "text"  /></label>
+			<input type = "button" class = "generate" onclick = "generateMelody()" value = "Generate Melody" />
+		</div>
+	</div>	
+	
+	<script>
+		/* Initialize global variables */
+		var midifile = "./audio/mary.mid";
+		var midifile1 = "./audio/twinkle_twinkle.mid";
+		var midifile2 = "./audio/silent_night_easy.mid";
+		var midifile3 = "./audio/happy_birthday.mid";
+		var midifile4 = "./audio/alphabet.mid";
+		var noteNames =  ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+		var noteMap1 = {
+			"A1" : 33, "A2" : 45, "A3" : 57, "A4" : 69, "B1" : 35, "B2" : 47, "B3" : 59, "B4" : 71, "C1" : 24, "C2" : 36, "C3" : 48, "C4" : 60, "D1" : 26, "D2" : 38, "D3" : 50, "D4" : 62, "E1" : 28, "E2" : 40, "E3" : 52, "E4" : 64, "F1" : 29, "F2" : 41, "F3" : 53, "F4" : 65, "G1" : 31, "G2" : 43, "G3" : 55, "G4" : 67
+		};
+		var noteMap = {
+			24: "C1",
+			25: "C#1",
+			26: "D1",
+			27: "D#1",
+			28: "E1",
+			29: "F1",
+			30: "F#1",
+			31: "G1",
+			32: "G#1",
+			33: "A1",
+			34: "A#1",
+			35: "B1",
+			36: "C2",
+			37: "C#2",
+			38: "D2",
+			39: "D#2",
+			40: "E2",
+			41: "F2",
+			42: "F#2",
+			43: "G2",
+			44: "G#2",
+			45: "A2",
+			46: "A#2",
+			47: "B2",
+			48: "C3",
+			49: "C#3",
+			50: "D3",
+			51: "D#3",
+			52: "E3",
+			53: "F3",
+			54: "F#3",
+			55: "G3",
+			56: "G#3",
+			57: "A3",
+			58: "A#3",
+			59: "B3",
+			60: "C4",
+			61: "C#4",
+			62: "D4",
+			63: "D#4",
+			64: "E4",
+			65: "F4",
+			66: "F#4",
+			67: "G4",
+			68: "G#4",
+			69: "A4",
+			70: "A#4",
+			71: "B4",
+		};
+		//these vars can be local? keep them inside loadMidi function
+		var numOfNotes = 0;
+		var noteArray = [];
+		var timeArray = [];
+		var velArray = [];
+		var durArray = [];
+		var noteNumArr = [];
+		var rowVals = [];
+		var events = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33];
+
+		function generateMelody(){
+
+		}
+
+		function loadMidi(midifile){
+			MidiConvert.load(midifile, function(midi) {
+				//midi - is the json midi object
+				//set the Tone.Transport bpm to value of midi bpm
+				Tone.Transport.bpm.value = midi.bpm;
+				//Get notes from the midi json object
+				var notes = midi.tracks[1].notes;
+				numOfNotes = midi.tracks[1].notes.length;
+				console.log('num of notes:',numOfNotes);
+				/*Store the values of each note, time, duration, velocity into arrays */
+				for (var j = 0; j < numOfNotes; j++){
+					var note = notes[j].name
+					var time = notes[j].time
+					var velocity = notes[j].velocity
+					var duration = notes[j].duration;
+					var noteNum = notes[j].midi;
+					noteArray.push(note);
+					timeArray.push(time);
+					velArray.push(velocity);
+					durArray.push(duration);
+					noteNumArr.push(noteNum);
+				}
+				/* Get unique set of notes in the midi object */
+				//Get min and max note value
+				var minNote = noteNumArr.sort()[0];
+				var maxNote = noteNumArr.sort()[noteNumArr.length - 1]
+				var numOfRows = maxNote - minNote + 1;
+				for (var i = minNote; i <= maxNote; i++) {
+					rowVals.push(noteMap[i]);
+				};
+				//Add note names as labels to rows
+				addRowLabels("noteLabel", rowVals);
+				//get table height
+				tableHeight = getTableHeight('noteLabel');
+				/* Initialize the matrix with midi notes */
+				nx.colorize("#f5871f");
+				//set the row size
+				matrix1.row = numOfRows;
+				//set the column size
+				matrix1.col = numOfNotes;
+				matrix1.init();
+				matrix1.resize($("#Content").width(), tableHeight);
+				matrix1.draw();
+				/*Initialize the matrix cells to true or false depening on which notes are present in the midi*/
+				//rowArr contains the row value for ach note and colArr conatins the column value for each note in noteArr
+				var rowArr = [];
+				var colArr = [0]; 
+				//Get the values for col numbers from start-times in midi file
+				for (var i = 1; i < timeArray.length; i++) {
+					//console.log(timeArray[i]);
+					if(timeArray[i] == timeArray[i - 1])
+						colArr.push(colArr[i - 1]);
+					else
+						colArr.push(colArr[i - 1] + 1);
+				}
+				//Get the values for row numbers from note-names in midi file
+				for (var i = 0; i < noteArray.length; i++) {
+					for (var j = 0; j < rowVals.length; j++) {
+						if(noteArray[i] == rowVals[j])
+							rowArr.push(j);
+					}
+				}
+				for (var i = 0; i < numOfRows; i++) {
+					for (var j = 0; j < numOfNotes; j++) {
+						matrix1.matrix[j][i] = 0;
+					};
+				};
+				for (var i = 0; i < rowArr.length; i++) {
+					matrix1.setCell(colArr[i], rowArr[i], true);
+				}
+			});
+		}
+		/* Create row labels dynamically from rowVals*/
+		function addRowLabels(tableId, rowVals){
+			var element1 = document.getElementById(tableId);
+			for (var i = 0; i < rowVals.length; i++) {
+				var tr = document.createElement("tr");
+				tr.id = "row"+i;
+				var td = document.createElement("td");
+				td.innerHTML = rowVals[i];
+				tr.appendChild(td);
+				element1.appendChild(tr);
+			};
+		}
+		/*Get the height of a table given the table id*/
+		function getTableHeight(tableId){
+			//get table height
+			var tableHeight = document.getElementById(tableId).offsetHeight;
+			//set matrix height equal to table height
+			document.getElementById('matrix1').style.height = tableHeight+"px";
+			document.getElementById('mat').style.height = tableHeight+"px";
+			return tableHeight;
+		}
+		
+		//setup a polyphonic sampler
+		var keys = new Tone.MultiPlayer({
+			urls : {
+				"A1" : "./audio/notes/A1.wav",
+				"A1#" : "./audio/notes/Bb.wav",
+				"C1" : "./audio/notes/C1.wav",
+				"C1#" : "./audio/notes/Ch.wav",
+				"E1" : "./audio/notes/E1.wav",
+				"F1" : "./audio/notes/F1.wav",
+				"F1#" : "./audio/notes/Fh.wav",
+				"D1" : "./audio/notes/D1.wav",
+				"D1#" : "./audio/notes/Eb.wav",
+				"G1" : "./audio/notes/G1.wav",
+				"G1#" : "./audio/notes/Gh.wav",
+				"B1" : "./audio/notes/B1.wav",
+
+				"A2" : "./audio/notes/A2.mp3",
+				"B2" : "./audio/notes/B2.wav",
+				"C2" : "./audio/notes/C2.mp3",
+				"D2" : "./audio/notes/D2.mp3",
+				"E2" : "./audio/notes/E2.mp3",
+				"F2" : "./audio/notes/F2.mp3",
+				"G2" : "./audio/notes/G2.mp3",
+
+				"A3" : "./audio/notes/A3.wav",
+				"B3" : "./audio/notes/B3.wav",
+				"C3" : "./audio/notes/C3.wav",
+				"D3" : "./audio/notes/D3.wav",
+				"E3" : "./audio/notes/E3.wav",
+				"F3" : "./audio/notes/F3.wav",
+				"G3" : "./audio/notes/G3.wav",
+
+				"A4" : "./audio/notes/A4.wav",
+				"B4" : "./audio/notes/B4.wav",
+				"C4" : "./audio/notes/C4.wav",
+				"D4" : "./audio/notes/D4.wav",
+				"E4" : "./audio/notes/E4.wav",
+				"F4" : "./audio/notes/F4.wav",
+				"G4" : "./audio/notes/G4.wav",
+			},
+			volume : -4,
+			fadeOut : 0.1,
+		}).toMaster();
+		
+		var count = 0; //start index for getting vel and duration of each note
+		var loop = new Tone.Sequence(function(time, col){
+			if (count === numOfNotes)
+				count = 0;
+			var column = matrix1.matrix[col];
+			for (var i = 0; i < rowVals.length; i++){
+				if (column[i] === 1){
+					var vel = velArray[count];
+					var durn = durArray[count];
+					var startTime = timeArray[count];
+					//console.log('note:',noteArray[count]);
+					//console.log('time:',time);
+					//console.log('dur:',durn);
+					keys.start(noteArray[count], time, 0, durn, 0, vel);
+					count = count + 1;
+				}
+			} 
+		}, events, "4n");
+		Tone.Transport.start();
+
+		// GUI //
+		nx.onload = function(){
+			loadMidi(midifile);
+		}
+
+		Interface.Slider({
+			name : "BPM",
+			min : 80,
+			max : 200,
+			value : Tone.Transport.bpm.value,
+			drag : function(val){
+				Tone.Transport.bpm.value = val;
+			}
+		});
+		Interface.Button({
+			text : "Start",
+			activeText : "Stop",
+			type : "toggle",
+			key : 32, //spacebar
+			start : function(){
+				loop.start();
+			},
+			end : function(){
+				loop.stop();
+			},
+		});
+		Interface.Loader();
+		$(window).on("resize", function(){
+			//will not work if window resized since 250 must be changed to table height???
+			//matrix1.resize($("#Content").width(), 250);
+			matrix1.draw();	
+		});
+		
+	</script>
+	
+</body>
+</html>
